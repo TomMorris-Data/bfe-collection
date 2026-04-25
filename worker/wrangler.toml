@@ -11,7 +11,7 @@ crons = ["0 8 * * MON"]
 APP_BASE_URL = "http://localhost:3000"
 ENVIRONMENT = "development"
 # SUPABASE_URL is safe to commit — it's a public project URL
-SUPABASE_URL = "https://YOUR_PROJECT_REF.supabase.co"
+SUPABASE_URL = "https://qmrbuqajdbxubfddifre.supabase.co"
 
 # Secrets — set via: npx wrangler secret put SECRET_NAME
 # SUPABASE_SERVICE_ROLE_KEY   (from Supabase dashboard → Settings → API)
@@ -22,4 +22,4 @@ SUPABASE_URL = "https://YOUR_PROJECT_REF.supabase.co"
 [env.production.vars]
 APP_BASE_URL = "https://bfe-health-frontend.pages.dev"
 ENVIRONMENT = "production"
-SUPABASE_URL = "https://YOUR_PROJECT_REF.supabase.co"
+SUPABASE_URL = "https://qmrbuqajdbxubfddifre.supabase.co"
