@@ -33,10 +33,10 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState<"all" | "behind" | "alerts">("all");
 
   useEffect(() => {
-    api.listFarms().then((d) => {
-      setFarms(d as FarmListItem[]);
-      setLoading(false);
-    });
+    api.listFarms()
+      .then((d) => { setFarms(d as FarmListItem[]); })
+      .catch((e) => { console.error("listFarms failed:", e); })
+      .finally(() => setLoading(false));
   }, []);
 
   const filtered = farms.filter((f) => {
