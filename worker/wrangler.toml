@@ -8,18 +8,11 @@ compatibility_flags = ["nodejs_compat"]
 crons = ["0 8 * * MON"]
 
 [vars]
-APP_BASE_URL = "http://localhost:3000"
-ENVIRONMENT = "development"
-# SUPABASE_URL is safe to commit — it's a public project URL
-SUPABASE_URL = "https://qmrbuqajdbxubfddifre.supabase.co"
-
-# Secrets — set via: npx wrangler secret put SECRET_NAME
-# SUPABASE_SERVICE_ROLE_KEY   (from Supabase dashboard → Settings → API)
-# RESEND_API_KEY 
-# ANTHROPIC_API_KEY
-
-[env.production]
-[env.production.vars]
 APP_BASE_URL = "https://bfe-health-frontend.pages.dev"
 ENVIRONMENT = "production"
 SUPABASE_URL = "https://qmrbuqajdbxubfddifre.supabase.co"
+
+# Secrets — set in Cloudflare dashboard → Workers → bfe-health-api → Settings → Variables & Secrets
+# SUPABASE_SERVICE_ROLE_KEY
+# RESEND_API_KEY
+# ANTHROPIC_API_KEY
