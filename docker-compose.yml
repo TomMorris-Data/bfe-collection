@@ -1,0 +1,25 @@
+# Docker Compose is now only used for the Next.js frontend in local dev.
+# The backend is a Cloudflare Worker — run it with:  cd worker && npm run dev
+# The database is Cloudflare D1 — managed locally by wrangler.
+#
+# To start everything locally:
+#   Terminal 1:  cd worker   && npm install && npm run db:migrate:local && npm run db:seed:local && npm run dev
+#   Terminal 2:  cd frontend && npm install && npm run dev
+#
+# Or use Docker just for the frontend:
+#   docker compose up frontend
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8787
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    command: npm run dev
