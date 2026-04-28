@@ -31,33 +31,26 @@ export default function CheckInPage() {
       });
   }, [token]);
 
-  const handleSave = async (updated: Record<string, string | number | null>) => {
-    setResponses(updated);
-    const payload = Object.entries(updated).map(([key, val]) => {
-      const q = data!.questions.find((q) => q.key === key)!;
-      return {
+  const buildPayload = (responses: Record<string, string | number | null>) =>
+    Object.entries(responses).flatMap(([key, val]) => {
+      const q = data!.questions.find((q) => q.key === key);
+      if (!q) return [];
+      return [{
         question_key: key,
         section: q.section,
         value_num: typeof val === "number" ? val : null,
         value_text: q.type === "text" ? String(val ?? "") : null,
         value_option: q.type === "option" || q.type === "boolean" ? String(val ?? "") : null,
-      };
+      }];
     });
-    await api.saveResponses(token, payload);
+
+  const handleSave = async (updated: Record<string, string | number | null>) => {
+    setResponses(updated);
+    await api.saveResponses(token, buildPayload(updated));
   };
 
   const handleComplete = async (final: Record<string, string | number | null>) => {
-    const payload = Object.entries(final).map(([key, val]) => {
-      const q = data!.questions.find((q) => q.key === key)!;
-      return {
-        question_key: key,
-        section: q.section,
-        value_num: typeof val === "number" ? val : null,
-        value_text: q.type === "text" ? String(val ?? "") : null,
-        value_option: q.type === "option" || q.type === "boolean" ? String(val ?? "") : null,
-      };
-    });
-    await api.completeCheckin(token, payload);
+    await api.completeCheckin(token, buildPayload(final));
     setScreen("done");
   };
 
