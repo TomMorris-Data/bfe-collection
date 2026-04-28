@@ -41,6 +41,12 @@ export default function SuccessScreen({ farm, periodStart }: Props) {
           </div>
         </div>
       </div>
+      <button
+        onClick={() => window.close()}
+        className="mt-6 text-sm text-gray-400 hover:text-gray-600 underline underline-offset-2"
+      >
+        Close this window
+      </button>
     </div>
   );
 }

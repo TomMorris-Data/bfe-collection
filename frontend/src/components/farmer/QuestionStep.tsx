@@ -74,9 +74,9 @@ export default function QuestionStep({ questions, responses, onSave, onComplete,
         {/* Number input */}
         {q.type === "number" && (
           <div className="mt-6">
-            <div className="flex items-center gap-3">
+            <div className="grid grid-cols-[3.5rem_1fr_3.5rem] items-center gap-3">
               <button
-                className="w-14 h-14 shrink-0 rounded-2xl bg-gray-100 text-2xl font-bold flex items-center justify-center
+                className="h-14 rounded-2xl bg-gray-100 text-2xl font-bold flex items-center justify-center
                            hover:bg-gray-200 active:scale-95 transition-all"
                 onClick={() => setValue(Math.max(0, (Number(value) || 0) - 1))}
               >
@@ -87,12 +87,12 @@ export default function QuestionStep({ questions, responses, onSave, onComplete,
                 min={0}
                 value={value ?? ""}
                 onChange={(e) => setValue(e.target.value === "" ? null : Number(e.target.value))}
-                className="w-0 flex-1 min-w-0 text-center text-3xl font-bold border-2 border-gray-200 rounded-2xl py-4
+                className="w-full text-center text-3xl font-bold border-2 border-gray-200 rounded-2xl py-4
                            focus:border-bfe-purple focus:outline-none
                            [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
               <button
-                className="w-14 h-14 shrink-0 rounded-2xl bg-bfe-purple text-white text-2xl font-bold flex items-center justify-center
+                className="h-14 rounded-2xl bg-bfe-purple text-white text-2xl font-bold flex items-center justify-center
                            hover:bg-bfe-purple-dark active:scale-95 transition-all"
                 onClick={() => setValue((Number(value) || 0) + 1)}
               >
