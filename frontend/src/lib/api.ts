@@ -1,4 +1,8 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787";
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? (
+  typeof window !== "undefined" && window.location.hostname !== "localhost"
+    ? "https://bfe-health-api.tmorris.workers.dev"
+    : "http://localhost:8787"
+);
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
