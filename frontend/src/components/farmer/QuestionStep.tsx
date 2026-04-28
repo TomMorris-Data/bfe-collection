@@ -73,30 +73,33 @@ export default function QuestionStep({ questions, responses, onSave, onComplete,
 
         {/* Number input */}
         {q.type === "number" && (
-          <div className="flex items-center gap-4 mt-6">
-            <button
-              className="w-14 h-14 rounded-2xl bg-gray-100 text-2xl font-bold flex items-center justify-center
-                         hover:bg-gray-200 active:scale-95 transition-all"
-              onClick={() => setValue(Math.max(0, (Number(value) || 0) - 1))}
-            >
-              −
-            </button>
-            <input
-              type="number"
-              min={0}
-              value={value ?? ""}
-              onChange={(e) => setValue(e.target.value === "" ? null : Number(e.target.value))}
-              className="flex-1 text-center text-3xl font-bold border-2 border-gray-200 rounded-2xl py-4
-                         focus:border-bfe-purple focus:outline-none"
-            />
-            <button
-              className="w-14 h-14 rounded-2xl bg-bfe-purple text-white text-2xl font-bold flex items-center justify-center
-                         hover:bg-bfe-purple-dark active:scale-95 transition-all"
-              onClick={() => setValue((Number(value) || 0) + 1)}
-            >
-              +
-            </button>
-            {q.unit && <span className="text-gray-500 font-medium">{q.unit}</span>}
+          <div className="mt-6">
+            <div className="flex items-center gap-3">
+              <button
+                className="w-14 h-14 shrink-0 rounded-2xl bg-gray-100 text-2xl font-bold flex items-center justify-center
+                           hover:bg-gray-200 active:scale-95 transition-all"
+                onClick={() => setValue(Math.max(0, (Number(value) || 0) - 1))}
+              >
+                −
+              </button>
+              <input
+                type="number"
+                min={0}
+                value={value ?? ""}
+                onChange={(e) => setValue(e.target.value === "" ? null : Number(e.target.value))}
+                className="w-0 flex-1 min-w-0 text-center text-3xl font-bold border-2 border-gray-200 rounded-2xl py-4
+                           focus:border-bfe-purple focus:outline-none
+                           [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <button
+                className="w-14 h-14 shrink-0 rounded-2xl bg-bfe-purple text-white text-2xl font-bold flex items-center justify-center
+                           hover:bg-bfe-purple-dark active:scale-95 transition-all"
+                onClick={() => setValue((Number(value) || 0) + 1)}
+              >
+                +
+              </button>
+            </div>
+            {q.unit && <div className="text-center text-sm text-gray-400 mt-2">{q.unit}</div>}
           </div>
         )}
 
