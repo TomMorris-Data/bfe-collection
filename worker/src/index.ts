@@ -33,6 +33,17 @@ app.route("/api/report", reportRouter);
 app.route("/api/antibiotics", antibioticsRouter);
 
 app.get("/health", (c) => c.json({ status: "ok", env: c.env.ENVIRONMENT }));
+app.get("/health-async", async (c) => c.json({ status: "ok-async" }));
+app.get("/health-db", async (c) => {
+  try {
+    const { getDb } = await import("./db/supabase");
+    const db = getDb(c.env);
+    const { data, error } = await db.from("farms").select("id").limit(1);
+    return c.json({ db: "ok", rows: data?.length ?? 0, error: error?.message ?? null });
+  } catch (e) {
+    return c.json({ db: "threw", message: String(e) }, 500);
+  }
+});
 
 export default {
   fetch: app.fetch,
