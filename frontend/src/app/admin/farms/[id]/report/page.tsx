@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import type { ReportData, AiPoint, KpiCard, DiseaseRow } from "@/lib/types";
+import type { ReportData, AiPoint, KpiCard, DiseaseRow, AntibioticUsage } from "@/lib/types";
 
 function RagBadge({ rag }: { rag: string }) {
   const map: Record<string, string> = {
@@ -43,6 +43,66 @@ function KpiCardEl({ kpi }: { kpi: KpiCard }) {
         <div className={`text-xs mt-1 ${deltaColour}`}>{kpi.vs_prior_year_label}</div>
       )}
     </div>
+  );
+}
+
+function MgPcuCard({ usage }: { usage: AntibioticUsage }) {
+  const { mg_per_pcu, total_mg, total_pcu_kg, window: w, has_stock_data, has_prescription_data } = usage;
+
+  const ragClass =
+    mg_per_pcu === null ? "border-gray-200" :
+    mg_per_pcu < 50 ? "border-l-4 border-bfe-green" :
+    mg_per_pcu < 100 ? "border-l-4 border-bfe-amber" :
+    "border-l-4 border-bfe-red";
+
+  const ragLabel =
+    mg_per_pcu === null ? null :
+    mg_per_pcu < 50 ? "Below RUMA 50 mg/PCU target" :
+    mg_per_pcu < 100 ? "Above RUMA target — review usage" :
+    "High — immediate review recommended";
+
+  const ragColour =
+    mg_per_pcu === null ? "text-gray-400" :
+    mg_per_pcu < 50 ? "text-bfe-green" :
+    mg_per_pcu < 100 ? "text-bfe-amber" :
+    "text-bfe-red";
+
+  return (
+    <section className={`card mb-6 ${ragClass}`}>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-bold">Antibiotic Usage (mg/PCU)</h2>
+        <span className="text-xs text-gray-400">
+          {new Date(w.from).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}
+          {" – "}
+          {new Date(w.to).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}
+        </span>
+      </div>
+
+      {!has_stock_data || !has_prescription_data ? (
+        <div className="text-sm text-gray-400 space-y-1">
+          {!has_stock_data && <p>⚠ No stock counts entered for this farm — add them to calculate PCU.</p>}
+          {!has_prescription_data && <p>⚠ No prescription data uploaded for this period.</p>}
+        </div>
+      ) : (
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <div className="text-xs text-gray-500 mb-1">mg/PCU</div>
+            <div className={`text-3xl font-black ${ragColour}`}>
+              {mg_per_pcu !== null ? mg_per_pcu.toFixed(1) : "—"}
+            </div>
+            {ragLabel && <div className={`text-xs mt-1 ${ragColour}`}>{ragLabel}</div>}
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 mb-1">Total active substance</div>
+            <div className="text-xl font-bold">{total_mg.toLocaleString("en-GB")}<span className="text-sm font-normal text-gray-400 ml-1">mg</span></div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 mb-1">PCU (live weight)</div>
+            <div className="text-xl font-bold">{total_pcu_kg.toLocaleString("en-GB")}<span className="text-sm font-normal text-gray-400 ml-1">kg</span></div>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -163,6 +223,9 @@ export default function ReportPage() {
           </div>
         </section>
       )}
+
+      {/* Antibiotic usage */}
+      {report.antibiotic_usage && <MgPcuCard usage={report.antibiotic_usage} />}
 
       {/* Disease log */}
       {report.diseases.length > 0 && (

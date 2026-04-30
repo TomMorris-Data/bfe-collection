@@ -25,6 +25,21 @@ export interface Database {
         Insert: Omit<Benchmark, "id"> & { id?: string };
         Update: Partial<Benchmark>;
       };
+      pcu_category_weights: {
+        Row: PcuCategoryWeight;
+        Insert: PcuCategoryWeight;
+        Update: Partial<PcuCategoryWeight>;
+      };
+      antibiotic_prescriptions: {
+        Row: AntibioticPrescription;
+        Insert: Omit<AntibioticPrescription, "id" | "created_at"> & { id?: string };
+        Update: Partial<AntibioticPrescription>;
+      };
+      farm_stock_counts: {
+        Row: FarmStockCount;
+        Insert: Omit<FarmStockCount, "id"> & { id?: string };
+        Update: Partial<FarmStockCount>;
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -82,4 +97,35 @@ export interface Benchmark {
   amber_below: number | null;
   green_above: number | null;
   higher_is_better: boolean;
+}
+
+export interface PcuCategoryWeight {
+  code: string;
+  label: string;
+  species: string;
+  weight_kg: number;
+  pbi_column: string | null;
+  sort_order: number;
+}
+
+export interface AntibioticPrescription {
+  id: string;
+  farm_id: string;
+  prescription_date: string;
+  product_name: string | null;
+  active_substance: string | null;
+  total_mg: number;
+  volume_ml: number | null;
+  sale_value_gbp: number | null;
+  import_batch_id: string | null;
+  created_at: string;
+}
+
+export interface FarmStockCount {
+  id: string;
+  farm_id: string;
+  category_code: string;
+  count: number;
+  year: number;
+  updated_at: string;
 }

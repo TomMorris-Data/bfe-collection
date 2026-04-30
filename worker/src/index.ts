@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import checkinsRouter from "./routes/checkins";
 import adminRouter from "./routes/admin";
 import reportRouter from "./routes/report";
+import antibioticsRouter from "./routes/antibiotics";
 import { dispatchAll } from "./services/dispatch";
 
 type Bindings = {
@@ -29,6 +30,7 @@ app.use(
 app.route("/api/checkins", checkinsRouter);
 app.route("/api/admin", adminRouter);
 app.route("/api/report", reportRouter);
+app.route("/api/antibiotics", antibioticsRouter);
 
 app.get("/health", (c) => c.json({ status: "ok", env: c.env.ENVIRONMENT }));
 

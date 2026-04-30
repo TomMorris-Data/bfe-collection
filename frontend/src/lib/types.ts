@@ -67,6 +67,15 @@ export interface TreatmentEvent {
   enterprise: string;
 }
 
+export interface AntibioticUsage {
+  mg_per_pcu: number | null;
+  total_mg: number;
+  total_pcu_kg: number;
+  window: { from: string; to: string };
+  has_stock_data: boolean;
+  has_prescription_data: boolean;
+}
+
 export interface ReportData {
   farm: Farm;
   period_label: string;
@@ -75,6 +84,7 @@ export interface ReportData {
   diseases: DiseaseRow[];
   treatments: TreatmentEvent[];
   farmer_notes: Record<string, string>;
+  antibiotic_usage: AntibioticUsage;
   vet_notes: string | null;
 }
 

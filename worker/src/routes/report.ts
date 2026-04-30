@@ -120,6 +120,36 @@ function buildSucklerKpis(thisY: ResponseMap, prior: ResponseMap, bms: Record<st
   ];
 }
 
+/** Rolling 12-month window ending at the last day of the previous month */
+function rollingWindow() {
+  const now = new Date();
+  const to = new Date(now.getFullYear(), now.getMonth(), 0);
+  const from = new Date(to.getFullYear() - 1, to.getMonth() + 1, 1);
+  return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) };
+}
+
+async function getMgPcu(db: ReturnType<typeof getDb>, farmId: string, year: number) {
+  const { from, to } = rollingWindow();
+  const [stockRes, weightsRes, rxRes] = await Promise.all([
+    db.from("farm_stock_counts").select("category_code, count").eq("farm_id", farmId).eq("year", year),
+    db.from("pcu_category_weights").select("code, weight_kg"),
+    db.from("antibiotic_prescriptions").select("total_mg").eq("farm_id", farmId).gte("prescription_date", from).lte("prescription_date", to),
+  ]);
+
+  const weightMap = Object.fromEntries((weightsRes.data ?? []).map((w) => [w.code, Number(w.weight_kg)]));
+  const totalPcu = (stockRes.data ?? []).reduce((s, sc) => s + sc.count * (weightMap[sc.category_code] ?? 0), 0);
+  const totalMg = (rxRes.data ?? []).reduce((s, r) => s + (r.total_mg ?? 0), 0);
+
+  return {
+    mg_per_pcu: totalPcu > 0 ? Math.round((totalMg / totalPcu) * 100) / 100 : null,
+    total_mg: Math.round(totalMg),
+    total_pcu_kg: Math.round(totalPcu),
+    window: { from, to },
+    has_stock_data: (stockRes.data?.length ?? 0) > 0,
+    has_prescription_data: (rxRes.data?.length ?? 0) > 0,
+  };
+}
+
 // GET /api/report/:farmId
 router.get("/:farmId", async (c) => {
   const db = getDb(c.env);
@@ -129,10 +159,11 @@ router.get("/:farmId", async (c) => {
   if (error || !farm) return c.json({ error: "Farm not found" }, 404);
 
   const thisYear = new Date().getFullYear();
-  const [thisY, priorY, { data: bmRows }] = await Promise.all([
+  const [thisY, priorY, { data: bmRows }, mgpcu] = await Promise.all([
     getYearResponses(db, farmId, thisYear),
     getYearResponses(db, farmId, thisYear - 1),
     db.from("benchmarks").select("*"),
+    getMgPcu(db, farmId, thisYear),
   ]);
 
   const bms: Record<string, Benchmark> = {};
@@ -171,6 +202,7 @@ router.get("/:farmId", async (c) => {
       challenges: (thisY["aims_challenges"] as string | null) ?? "",
       targets: (thisY["aims_targets"] as string | null) ?? "",
     },
+    antibiotic_usage: mgpcu,
     vet_notes: null,
   });
 });
