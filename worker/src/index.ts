@@ -33,6 +33,8 @@ app.route("/api/admin", adminRouter);
 app.route("/api/report", reportRouter);
 app.route("/api/antibiotics", antibioticsRouter);
 
+app.onError((err, c) => c.json({ type: String(err?.constructor?.name), message: String((err as Error)?.message ?? err) }, 500));
+
 app.get("/health", (c) => c.json({ status: "ok", env: c.env.ENVIRONMENT }));
 
 export default {
