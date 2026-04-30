@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($response = Invoke-WebRequest -Uri \"https://bfe-health-api.tmorris.workers.dev/api/admin/farms\" -Method GET -ErrorAction SilentlyContinue; \"Status: $\\($response.StatusCode\\)\"; \"Body: $\\($response.Content\\)\")",
+      "PowerShell($response = Invoke-WebRequest -Uri \"https://bfe-health-api.tmorris.workers.dev/health\" -Method GET -ErrorAction SilentlyContinue; \"Status: $\\($response.StatusCode\\)\"; \"Body: $\\($response.Content\\)\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
+    ]
+  }
+}

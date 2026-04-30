@@ -1,4 +1,6 @@
 import { Hono } from "hono";
+import { zValidator } from "@hono/zod-validator";
+import { z } from "zod";
 import { getDb } from "../db/supabase";
 import { generateToken, checkinUrl, tokenExpiresAt, thisPeriodStart, periodEnd } from "../services/magic_link";
 import { sendCheckinEmail } from "../services/email";
@@ -11,6 +13,38 @@ type Bindings = {
 };
 
 const router = new Hono<{ Bindings: Bindings }>();
+
+const CreateFarmSchema = z.object({
+  name: z.string().min(1),
+  client_ref: z.string().min(1),
+  contact_name: z.string().nullable().optional(),
+  email: z.string().email().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  enterprise_types: z.array(z.enum(["sheep", "suckler", "calf_rearer"])).min(1),
+  sbi_no: z.string().nullable().optional(),
+  ahwp_agreement_no: z.string().nullable().optional(),
+});
+
+// POST /api/admin/farms
+router.post("/farms", zValidator("json", CreateFarmSchema), async (c) => {
+  const db = getDb(c.env);
+  const body = c.req.valid("json");
+
+  const { data: farm, error } = await db.from("farms").insert({
+    name: body.name,
+    client_ref: body.client_ref,
+    contact_name: body.contact_name ?? null,
+    email: body.email ?? null,
+    phone: body.phone ?? null,
+    enterprise_types: body.enterprise_types,
+    sbi_no: body.sbi_no ?? null,
+    ahwp_agreement_no: body.ahwp_agreement_no ?? null,
+    active: true,
+  }).select().single();
+
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json(farm, 201);
+});
 
 // GET /api/admin/farms
 router.get("/farms", async (c) => {
@@ -94,6 +128,41 @@ router.post("/farms/:id/dispatch", async (c) => {
   );
 
   return c.json({ dispatched: sent, token, url });
+});
+
+// POST /api/admin/farms/:id/demo-dispatch
+// Creates a check-in token for any simulated month without sending email.
+router.post("/farms/:id/demo-dispatch", async (c) => {
+  const db = getDb(c.env);
+  const { data: farm, error } = await db
+    .from("farms").select("id, name, contact_name, email").eq("id", c.req.param("id")).single();
+  if (error || !farm) return c.json({ error: "Farm not found" }, 404);
+
+  const body = await c.req.json().catch(() => ({})) as { month?: number };
+  const month = typeof body.month === "number" && body.month >= 1 && body.month <= 12
+    ? body.month
+    : new Date().getMonth() + 1;
+
+  // Build a period_start on the first Monday of the chosen month in the current year
+  const year = new Date().getFullYear();
+  const firstDay = new Date(year, month - 1, 1);
+  const offset = firstDay.getDay() === 0 ? 1 : firstDay.getDay() === 1 ? 0 : 8 - firstDay.getDay();
+  firstDay.setDate(firstDay.getDate() + offset);
+  const start = firstDay.toISOString().slice(0, 10);
+  const end = periodEnd(start);
+  const token = generateToken();
+
+  const { error: insertErr } = await db.from("check_in_tokens").insert({
+    farm_id: farm.id,
+    token,
+    period_start: start,
+    period_end: end,
+    expires_at: tokenExpiresAt(7),
+  });
+  if (insertErr) return c.json({ error: insertErr.message }, 500);
+
+  const url = checkinUrl(c.env.APP_BASE_URL, token);
+  return c.json({ token, url, period_start: start, period_end: end, month });
 });
 
 export default router;

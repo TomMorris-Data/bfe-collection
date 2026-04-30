@@ -46,4 +46,22 @@ export const api = {
 
   getAiBriefing: (farmId: string) =>
     request(`/api/report/${farmId}/briefing`, { method: "POST", body: "{}" }),
+
+  createFarm: (payload: {
+    name: string;
+    client_ref: string;
+    contact_name?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    enterprise_types: string[];
+    sbi_no?: string | null;
+    ahwp_agreement_no?: string | null;
+  }) =>
+    request(`/api/admin/farms`, { method: "POST", body: JSON.stringify(payload) }),
+
+  demoDispatch: (farmId: string, month: number) =>
+    request(`/api/admin/farms/${farmId}/demo-dispatch`, {
+      method: "POST",
+      body: JSON.stringify({ month }),
+    }),
 };
