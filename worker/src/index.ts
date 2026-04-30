@@ -5,6 +5,7 @@ import adminRouter from "./routes/admin";
 import reportRouter from "./routes/report";
 import antibioticsRouter from "./routes/antibiotics";
 import { dispatchAll } from "./services/dispatch";
+import { getDb } from "./db/supabase";
 
 type Bindings = {
   SUPABASE_URL: string;
@@ -32,16 +33,24 @@ app.route("/api/admin", adminRouter);
 app.route("/api/report", reportRouter);
 app.route("/api/antibiotics", antibioticsRouter);
 
+// Custom error handler — exposes the actual exception so we can diagnose
+app.onError((err, c) => {
+  return c.json({
+    type: String(err?.constructor?.name ?? "Unknown"),
+    message: String((err as Error)?.message ?? err),
+    stack: String((err as Error)?.stack ?? "").slice(0, 600),
+  }, 500);
+});
+
 app.get("/health", (c) => c.json({ status: "ok", env: c.env.ENVIRONMENT }));
 app.get("/health-async", async (c) => c.json({ status: "ok-async" }));
 app.get("/health-db", async (c) => {
   try {
-    const { getDb } = await import("./db/supabase");
     const db = getDb(c.env);
-    const { data, error } = await db.from("farms").select("id").limit(1);
-    return c.json({ db: "ok", rows: data?.length ?? 0, error: error?.message ?? null });
+    const result = await db.from("farms").select("id").limit(1);
+    return c.json({ db: "ok", rows: result.data?.length ?? 0, error: result.error?.message ?? null });
   } catch (e) {
-    return c.json({ db: "threw", message: String(e) }, 500);
+    return c.json({ db: "threw-caught", message: String(e) }, 500);
   }
 });
 
