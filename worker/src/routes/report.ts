@@ -128,16 +128,43 @@ function rollingWindow() {
   return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) };
 }
 
+const QUESTION_TO_PCU: Record<string, string> = {
+  suckler_cows_to_bull: "A", pcu_replacement_heifers: "B",
+  pcu_stores_sold_under12: "C", pcu_stores_sold_12_18: "D", pcu_stores_sold_over18: "E",
+  pcu_fat_sold_under12: "F", pcu_fat_sold_12_18: "G", pcu_fat_sold_over18: "H",
+  pcu_stores_b12_s12: "I", pcu_stores_b12_s1218: "J", pcu_stores_b12_s18: "K",
+  pcu_stores_b1218_s1218: "L", pcu_stores_b1218_s18: "M", pcu_stores_b18_s18: "N",
+  pcu_fat_b12_s1218: "O", pcu_fat_b12_s18: "P", pcu_fat_b1218_s1218: "Q",
+  pcu_fat_b1218_s18: "R", pcu_fat_b18_s18: "S",
+  sheep_ewes_to_tup: "T", pcu_lambs_sold_breeding: "U",
+  sheep_lambs_sold_fat: "V", pcu_lambs_on_farm: "W",
+};
+
 async function getMgPcu(db: ReturnType<typeof getDb>, farmId: string, year: number) {
   const { from, to } = rollingWindow();
-  const [stockRes, weightsRes, rxRes] = await Promise.all([
-    db.from("farm_stock_counts").select("category_code, count").eq("farm_id", farmId).eq("year", year),
+  const [responsesRes, weightsRes, rxRes] = await Promise.all([
+    db.from("check_in_responses")
+      .select("question_key, value_num")
+      .eq("farm_id", farmId)
+      .gte("period_start", `${year}-01-01`)
+      .lte("period_start", `${year}-12-31`)
+      .in("question_key", Object.keys(QUESTION_TO_PCU))
+      .order("submitted_at", { ascending: false }),
     db.from("pcu_category_weights").select("code, weight_kg"),
     db.from("antibiotic_prescriptions").select("total_mg").eq("farm_id", farmId).gte("prescription_date", from).lte("prescription_date", to),
   ]);
 
   const weightMap = Object.fromEntries((weightsRes.data ?? []).map((w) => [w.code, Number(w.weight_kg)]));
-  const totalPcu = (stockRes.data ?? []).reduce((s, sc) => s + sc.count * (weightMap[sc.category_code] ?? 0), 0);
+
+  const seenKeys = new Set<string>();
+  let totalPcu = 0;
+  for (const r of responsesRes.data ?? []) {
+    if (seenKeys.has(r.question_key)) continue;
+    seenKeys.add(r.question_key);
+    const code = QUESTION_TO_PCU[r.question_key];
+    if (code && r.value_num !== null) totalPcu += r.value_num * (weightMap[code] ?? 0);
+  }
+
   const totalMg = (rxRes.data ?? []).reduce((s, r) => s + (r.total_mg ?? 0), 0);
 
   return {
@@ -145,7 +172,7 @@ async function getMgPcu(db: ReturnType<typeof getDb>, farmId: string, year: numb
     total_mg: Math.round(totalMg),
     total_pcu_kg: Math.round(totalPcu),
     window: { from, to },
-    has_stock_data: (stockRes.data?.length ?? 0) > 0,
+    has_stock_data: (responsesRes.data?.length ?? 0) > 0,
     has_prescription_data: (rxRes.data?.length ?? 0) > 0,
   };
 }

@@ -74,9 +74,35 @@ const HEALTH_PLAN: Question[] = [
   { key: "aims_targets", section: "health_plan", label: "Targets / priorities for next year", type: "text", enterpriseTypes: ["sheep", "suckler", "calf_rearer"], activeMonths: [10] },
 ];
 
+// Annual stock inventory — asked once in October for PCU calculation.
+// Cattle categories follow CHAWG methodology (buy age × sell age).
+// Sheep categories match CHAWG reference T–W.
+const STOCK_INVENTORY: Question[] = [
+  // Sheep
+  { key: "pcu_lambs_on_farm",        section: "stock_inventory", label: "Lambs still on farm (not yet sold)", type: "number", enterpriseTypes: ["sheep"], activeMonths: [10], unit: "head" },
+  { key: "pcu_lambs_sold_breeding",  section: "stock_inventory", label: "Lambs sold for breeding this year", type: "number", enterpriseTypes: ["sheep"], activeMonths: [10], unit: "head" },
+  // Suckler cattle
+  { key: "pcu_replacement_heifers",  section: "stock_inventory", label: "Replacement heifers kept this year", type: "number", enterpriseTypes: ["suckler"], activeMonths: [10], unit: "head" },
+  { key: "pcu_fat_sold_under12",     section: "stock_inventory", label: "Home-bred cattle sold fat under 12 months", type: "number", enterpriseTypes: ["suckler"], activeMonths: [10], unit: "head" },
+  { key: "pcu_fat_sold_12_18",       section: "stock_inventory", label: "Home-bred cattle sold fat 12–18 months", type: "number", enterpriseTypes: ["suckler"], activeMonths: [10], unit: "head" },
+  { key: "pcu_fat_sold_over18",      section: "stock_inventory", label: "Home-bred cattle sold fat over 18 months", type: "number", enterpriseTypes: ["suckler"], activeMonths: [10], unit: "head" },
+  { key: "pcu_stores_sold_12_18",    section: "stock_inventory", label: "Home-bred stores sold 12–18 months", type: "number", enterpriseTypes: ["suckler"], activeMonths: [10], unit: "head" },
+  { key: "pcu_stores_sold_over18",   section: "stock_inventory", label: "Home-bred stores sold over 18 months", type: "number", enterpriseTypes: ["suckler"], activeMonths: [10], unit: "head" },
+  { key: "pcu_stores_b12_s1218",     section: "stock_inventory", label: "Bought-in stores: bought under 12mo, sold 12–18mo", type: "number", enterpriseTypes: ["suckler"], activeMonths: [10], unit: "head", hint: "Include cattle you bought as youngstock and sold or are selling as stores" },
+  { key: "pcu_stores_b12_s18",       section: "stock_inventory", label: "Bought-in stores: bought under 12mo, sold over 18mo", type: "number", enterpriseTypes: ["suckler"], activeMonths: [10], unit: "head" },
+  { key: "pcu_stores_b1218_s1218",   section: "stock_inventory", label: "Bought-in stores: bought 12–18mo, sold 12–18mo", type: "number", enterpriseTypes: ["suckler"], activeMonths: [10], unit: "head" },
+  { key: "pcu_stores_b1218_s18",     section: "stock_inventory", label: "Bought-in stores: bought 12–18mo, sold over 18mo", type: "number", enterpriseTypes: ["suckler"], activeMonths: [10], unit: "head" },
+  { key: "pcu_stores_b18_s18",       section: "stock_inventory", label: "Bought-in stores: bought over 18mo, sold over 18mo", type: "number", enterpriseTypes: ["suckler"], activeMonths: [10], unit: "head" },
+  { key: "pcu_fat_b12_s1218",        section: "stock_inventory", label: "Bought-in finished cattle: bought under 12mo, sold 12–18mo", type: "number", enterpriseTypes: ["suckler"], activeMonths: [10], unit: "head" },
+  { key: "pcu_fat_b12_s18",          section: "stock_inventory", label: "Bought-in finished cattle: bought under 12mo, sold over 18mo", type: "number", enterpriseTypes: ["suckler"], activeMonths: [10], unit: "head" },
+  { key: "pcu_fat_b1218_s1218",      section: "stock_inventory", label: "Bought-in finished cattle: bought 12–18mo, sold 12–18mo", type: "number", enterpriseTypes: ["suckler"], activeMonths: [10], unit: "head" },
+  { key: "pcu_fat_b1218_s18",        section: "stock_inventory", label: "Bought-in finished cattle: bought 12–18mo, sold over 18mo", type: "number", enterpriseTypes: ["suckler"], activeMonths: [10], unit: "head" },
+  { key: "pcu_fat_b18_s18",          section: "stock_inventory", label: "Bought-in finished cattle: bought over 18mo, sold over 18mo", type: "number", enterpriseTypes: ["suckler"], activeMonths: [10], unit: "head" },
+];
+
 export const ALL_QUESTIONS: Question[] = [
   ...DISEASE_SHEEP, ...DISEASE_SUCKLER, ...TREATMENT_QUESTIONS,
-  ...SHEEP_SEASONAL, ...SUCKLER_SEASONAL, ...HEALTH_PLAN,
+  ...SHEEP_SEASONAL, ...SUCKLER_SEASONAL, ...HEALTH_PLAN, ...STOCK_INVENTORY,
 ];
 
 export function getQuestionsForFarm(enterpriseTypes: string[], month: number): Question[] {

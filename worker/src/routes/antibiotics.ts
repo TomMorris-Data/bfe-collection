@@ -34,65 +34,6 @@ router.get("/categories", async (c) => {
   return c.json(data);
 });
 
-// ── Stock counts ───────────────────────────────────────────────────────────
-
-// GET /api/antibiotics/farms/:farmId/stock-counts?year=2025
-router.get("/farms/:farmId/stock-counts", async (c) => {
-  const db = getDb(c.env);
-  const farmId = c.req.param("farmId");
-  const year = Number(c.req.query("year") ?? new Date().getFullYear());
-
-  const [countsRes, categoriesRes] = await Promise.all([
-    db.from("farm_stock_counts")
-      .select("category_code, count")
-      .eq("farm_id", farmId)
-      .eq("year", year),
-    db.from("pcu_category_weights").select("*").order("sort_order"),
-  ]);
-
-  if (countsRes.error) return c.json({ error: countsRes.error.message }, 500);
-
-  const countMap = Object.fromEntries(
-    (countsRes.data ?? []).map((r) => [r.category_code, r.count])
-  );
-
-  return c.json({
-    year,
-    categories: (categoriesRes.data ?? []).map((cat) => ({
-      ...cat,
-      count: countMap[cat.code] ?? 0,
-    })),
-  });
-});
-
-// PUT /api/antibiotics/farms/:farmId/stock-counts
-// Body: { year: number, counts: { [code]: number } }
-router.put("/farms/:farmId/stock-counts", async (c) => {
-  const db = getDb(c.env);
-  const farmId = c.req.param("farmId");
-  const body = await c.req.json<{ year: number; counts: Record<string, number> }>();
-  const { year, counts } = body;
-
-  const rows = Object.entries(counts)
-    .filter(([, n]) => n > 0)
-    .map(([code, count]) => ({
-      farm_id: farmId,
-      category_code: code,
-      count,
-      year,
-      updated_at: new Date().toISOString(),
-    }));
-
-  if (rows.length === 0) return c.json({ updated: 0 });
-
-  const { error } = await db
-    .from("farm_stock_counts")
-    .upsert(rows, { onConflict: "farm_id,category_code,year" });
-
-  if (error) return c.json({ error: error.message }, 500);
-  return c.json({ updated: rows.length });
-});
-
 // ── Prescription upload ────────────────────────────────────────────────────
 
 /**
@@ -192,6 +133,34 @@ router.delete("/prescriptions/batch/:batchId", async (c) => {
 
 // ── mg/PCU calculation ─────────────────────────────────────────────────────
 
+// Maps check-in question keys → PCU category codes (from CHAWG reference)
+// Extend this as new stock inventory questions are added to the check-in.
+const QUESTION_TO_PCU: Record<string, string> = {
+  suckler_cows_to_bull:          "A",  // Cows & heifers put to the bull  (726 kg)
+  pcu_replacement_heifers:       "B",  // Heifers kept as replacement      (367 kg)
+  pcu_stores_sold_under12:       "C",  // Stores/breeding sold <12mo       (  0 kg)
+  pcu_stores_sold_12_18:         "D",  // Stores/breeding sold 12–18mo     (266 kg)
+  pcu_stores_sold_over18:        "E",  // Stores/breeding sold >18mo       (453 kg)
+  pcu_fat_sold_under12:          "F",  // Fat sold <12mo                   (174 kg)
+  pcu_fat_sold_12_18:            "G",  // Fat sold 12–18mo                 (343 kg)
+  pcu_fat_sold_over18:           "H",  // Fat sold >18mo                   (655 kg)
+  pcu_stores_b12_s12:            "I",  // Stores bought <12, sold <12      (104 kg)
+  pcu_stores_b12_s1218:          "J",  // Stores bought <12, sold 12–18    (250 kg)
+  pcu_stores_b12_s18:            "K",  // Stores bought <12, sold >18      (428 kg)
+  pcu_stores_b1218_s1218:        "L",  // Stores bought 12–18, sold 12–18  (144 kg)
+  pcu_stores_b1218_s18:          "M",  // Stores bought 12–18, sold >18    (204 kg)
+  pcu_stores_b18_s18:            "N",  // Stores bought >18, sold >18      (146 kg)
+  pcu_fat_b12_s1218:             "O",  // Fat bought <12, sold 12–18       (325 kg)
+  pcu_fat_b12_s18:               "P",  // Fat bought <12, sold >18         (627 kg)
+  pcu_fat_b1218_s1218:           "Q",  // Fat bought 12–18, sold 12–18     (177 kg)
+  pcu_fat_b1218_s18:             "R",  // Fat bought 12–18, sold >18       (403 kg)
+  pcu_fat_b18_s18:               "S",  // Fat bought >18, sold >18         (199 kg)
+  sheep_ewes_to_tup:             "T",  // Ewes to tup                      ( 75 kg)
+  pcu_lambs_sold_breeding:       "U",  // Lambs sold for breeding           ( 20 kg)
+  sheep_lambs_sold_fat:          "V",  // Lambs sold fat                   ( 20 kg)
+  pcu_lambs_on_farm:             "W",  // Lambs still on holding           ( 20 kg)
+};
+
 // GET /api/antibiotics/farms/:farmId/mgpcu?year=2025
 router.get("/farms/:farmId/mgpcu", async (c) => {
   const db = getDb(c.env);
@@ -199,11 +168,15 @@ router.get("/farms/:farmId/mgpcu", async (c) => {
   const year = Number(c.req.query("year") ?? new Date().getFullYear());
   const { from, to } = rollingWindow();
 
-  const [stockRes, weightsRes, rxRes] = await Promise.all([
-    db.from("farm_stock_counts")
-      .select("category_code, count")
+  const [responsesRes, weightsRes, rxRes] = await Promise.all([
+    // Pull most recent value for each PCU-mapped question key within the year
+    db.from("check_in_responses")
+      .select("question_key, value_num")
       .eq("farm_id", farmId)
-      .eq("year", year),
+      .gte("period_start", `${year}-01-01`)
+      .lte("period_start", `${year}-12-31`)
+      .in("question_key", Object.keys(QUESTION_TO_PCU))
+      .order("submitted_at", { ascending: false }),
     db.from("pcu_category_weights").select("code, weight_kg"),
     db.from("antibiotic_prescriptions")
       .select("total_mg")
@@ -212,19 +185,30 @@ router.get("/farms/:farmId/mgpcu", async (c) => {
       .lte("prescription_date", to),
   ]);
 
-  if (stockRes.error) return c.json({ error: stockRes.error.message }, 500);
+  if (responsesRes.error) return c.json({ error: responsesRes.error.message }, 500);
   if (rxRes.error) return c.json({ error: rxRes.error.message }, 500);
 
   const weightMap = Object.fromEntries(
     (weightsRes.data ?? []).map((w) => [w.code, Number(w.weight_kg)])
   );
 
-  const totalPcu = (stockRes.data ?? []).reduce((sum, sc) => {
-    return sum + sc.count * (weightMap[sc.category_code] ?? 0);
+  // Most recent value per question key → map to PCU category
+  const seenKeys = new Set<string>();
+  const stockCounts: { code: string; count: number }[] = [];
+  for (const r of responsesRes.data ?? []) {
+    if (seenKeys.has(r.question_key)) continue; // keep only most recent
+    seenKeys.add(r.question_key);
+    const code = QUESTION_TO_PCU[r.question_key];
+    if (code && r.value_num !== null) {
+      stockCounts.push({ code, count: r.value_num });
+    }
+  }
+
+  const totalPcu = stockCounts.reduce((sum, sc) => {
+    return sum + sc.count * (weightMap[sc.code] ?? 0);
   }, 0);
 
   const totalMg = (rxRes.data ?? []).reduce((sum, r) => sum + (r.total_mg ?? 0), 0);
-
   const mgPerPcu = totalPcu > 0 ? Math.round((totalMg / totalPcu) * 100) / 100 : null;
 
   return c.json({
@@ -234,7 +218,8 @@ router.get("/farms/:farmId/mgpcu", async (c) => {
     total_mg: Math.round(totalMg),
     total_pcu_kg: Math.round(totalPcu),
     mg_per_pcu: mgPerPcu,
-    has_stock_data: (stockRes.data?.length ?? 0) > 0,
+    stock_counts: stockCounts,
+    has_stock_data: stockCounts.length > 0,
     has_prescription_data: (rxRes.data?.length ?? 0) > 0,
   });
 });

@@ -58,15 +58,5 @@ CREATE TABLE IF NOT EXISTS antibiotic_prescriptions (
 CREATE INDEX IF NOT EXISTS idx_rx_farm_date        ON antibiotic_prescriptions(farm_id, prescription_date);
 CREATE INDEX IF NOT EXISTS idx_rx_import_batch     ON antibiotic_prescriptions(import_batch_id);
 
--- ── Annual stock counts per farm (PCU denominator) ────────────────────────
-CREATE TABLE IF NOT EXISTS farm_stock_counts (
-  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  farm_id       UUID NOT NULL REFERENCES farms(id),
-  category_code TEXT NOT NULL REFERENCES pcu_category_weights(code),
-  count         INT NOT NULL DEFAULT 0,
-  year          INT NOT NULL,
-  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (farm_id, category_code, year)
-);
-
-CREATE INDEX IF NOT EXISTS idx_stock_farm_year ON farm_stock_counts(farm_id, year);
+-- Stock counts are derived directly from check_in_responses using QUESTION_TO_PCU
+-- mapping in the Worker. No separate table needed.

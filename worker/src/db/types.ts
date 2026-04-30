@@ -35,11 +35,6 @@ export interface Database {
         Insert: Omit<AntibioticPrescription, "id" | "created_at"> & { id?: string };
         Update: Partial<AntibioticPrescription>;
       };
-      farm_stock_counts: {
-        Row: FarmStockCount;
-        Insert: Omit<FarmStockCount, "id"> & { id?: string };
-        Update: Partial<FarmStockCount>;
-      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -121,11 +116,3 @@ export interface AntibioticPrescription {
   created_at: string;
 }
 
-export interface FarmStockCount {
-  id: string;
-  farm_id: string;
-  category_code: string;
-  count: number;
-  year: number;
-  updated_at: string;
-}
