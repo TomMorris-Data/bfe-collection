@@ -18,8 +18,11 @@ const ENTERPRISE_OPTIONS = [
 function CompletionBar({ pct }: { pct: number }) {
   const colour = pct >= 75 ? "bg-bfe-green" : pct >= 40 ? "bg-bfe-amber" : "bg-bfe-red";
   return (
-    <div className="h-2 bg-gray-100 rounded-full overflow-hidden mt-1">
-      <div className={`h-full ${colour} rounded-full transition-all`} style={{ width: `${pct}%` }} />
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className={`h-full ${colour} rounded-full transition-all`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-xs text-gray-500 tabular-nums w-9 text-right">{pct}%</span>
     </div>
   );
 }
@@ -31,7 +34,7 @@ function EnterpriseTag({ type }: { type: string }) {
     calf_rearer: "bg-blue-100 text-blue-700",
   };
   return (
-    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${styles[type] ?? "bg-gray-100 text-gray-600"}`}>
+    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${styles[type] ?? "bg-gray-100 text-gray-600"}`}>
       {type.replace("_", " ")}
     </span>
   );
@@ -71,9 +74,9 @@ function AddFarmModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
         enterprise_types: form.enterprise_types,
         sbi_no: form.sbi_no || null,
         ahwp_agreement_no: form.ahwp_agreement_no || null,
-      }) as FarmListItem & { completion_pct?: number; last_response?: string | null; alert_count?: number };
+      }) as { id: string };
       onCreated({
-        id: (created as { id: string }).id,
+        id: created.id,
         name: form.name,
         client_ref: form.client_ref,
         enterprise_types: form.enterprise_types,
@@ -195,11 +198,8 @@ function DemoPanel({ farmId, farmName, onClose }: { farmId: string; farmName: st
         </p>
         <div className="mb-4">
           <label className="block text-xs font-semibold text-gray-600 mb-1">Simulate month</label>
-          <select
-            value={month}
-            onChange={(e) => setMonth(Number(e.target.value))}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-          >
+          <select value={month} onChange={(e) => setMonth(Number(e.target.value))}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
             {MONTH_NAMES.map((name, i) => (
               <option key={i + 1} value={i + 1}>{name}</option>
             ))}
@@ -212,11 +212,8 @@ function DemoPanel({ farmId, farmName, onClose }: { farmId: string; farmName: st
             </div>
             <a href={result.url} target="_blank" rel="noreferrer"
               className="block text-bfe-purple font-semibold break-all hover:underline text-xs">{result.url}</a>
-            <button
-              onClick={() => { navigator.clipboard.writeText(result.url); }}
-              className="text-xs text-gray-500 hover:text-gray-700 underline">
-              Copy link
-            </button>
+            <button onClick={() => navigator.clipboard.writeText(result.url)}
+              className="text-xs text-gray-500 hover:text-gray-700 underline">Copy link</button>
           </div>
         )}
         {err && <p className="text-xs text-red-600 mb-3">{err}</p>}
@@ -255,7 +252,7 @@ function DispatchButton({ farm }: { farm: FarmListItem }) {
 
   if (state === "done" && url) {
     return (
-      <div className="flex flex-col items-end gap-1">
+      <div className="flex flex-col items-end gap-0.5">
         <span className="text-xs text-green-600 font-semibold">Sent ✓</span>
         <a href={url} target="_blank" rel="noreferrer" className="text-xs text-bfe-purple underline">Open link</a>
       </div>
@@ -263,11 +260,9 @@ function DispatchButton({ farm }: { farm: FarmListItem }) {
   }
 
   return (
-    <button
-      onClick={dispatch}
-      disabled={!farm.email || state === "sending"}
+    <button onClick={dispatch} disabled={!farm.email || state === "sending"}
       title={!farm.email ? "No email address on record" : "Send check-in email"}
-      className={`text-xs font-semibold px-3 py-2 rounded-lg transition-colors
+      className={`text-xs font-semibold px-3 py-2 rounded-lg transition-colors whitespace-nowrap
         ${!farm.email ? "bg-gray-100 text-gray-400 cursor-not-allowed"
           : state === "error" ? "bg-red-100 text-red-600"
           : "bg-bfe-green text-white hover:opacity-90"}`}>
@@ -307,9 +302,10 @@ export default function AdminDashboard() {
     : 0;
   const behind = farms.filter((f) => f.completion_pct < 40).length;
   const alerts = farms.filter((f) => f.alert_count > 0).length;
+  const noEmail = farms.filter((f) => !f.email).length;
 
   return (
-    <div className="max-w-4xl mx-auto px-5 py-6">
+    <div className="max-w-6xl mx-auto px-5 py-6">
       {showAddFarm && (
         <AddFarmModal
           onClose={() => setShowAddFarm(false)}
@@ -320,19 +316,16 @@ export default function AdminDashboard() {
         />
       )}
       {demoFarm && (
-        <DemoPanel
-          farmId={demoFarm.id}
-          farmName={demoFarm.name}
-          onClose={() => setDemoFarm(null)}
-        />
+        <DemoPanel farmId={demoFarm.id} farmName={demoFarm.name} onClose={() => setDemoFarm(null)} />
       )}
 
-      {/* Stat strip */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      {/* Stat strip — 2 cols mobile, 4 cols desktop */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
           { label: "Active farms", value: farms.length, colour: "text-bfe-purple" },
           { label: "Avg completion", value: `${avgCompletion}%`, colour: avgCompletion >= 60 ? "text-bfe-green" : "text-bfe-amber" },
           { label: "Behind schedule", value: behind, colour: behind > 0 ? "text-bfe-red" : "text-bfe-green" },
+          { label: "No email", value: noEmail, colour: noEmail > 0 ? "text-bfe-amber" : "text-bfe-green" },
         ].map((s) => (
           <div key={s.label} className="card text-center">
             <div className={`text-2xl font-black ${s.colour}`}>{s.value}</div>
@@ -341,82 +334,122 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* Tabs + search + add */}
+      {/* Toolbar */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
+        <div className="flex gap-1 bg-gray-100 p-1 rounded-xl shrink-0">
           {(["all", "behind", "alerts"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
+            <button key={t} onClick={() => setTab(t)}
               className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all
-                ${tab === t ? "bg-white shadow-sm text-bfe-purple" : "text-gray-500 hover:text-gray-700"}`}
-            >
+                ${tab === t ? "bg-white shadow-sm text-bfe-purple" : "text-gray-500 hover:text-gray-700"}`}>
               {t === "all" ? `All (${farms.length})` : t === "behind" ? `Behind (${behind})` : `Alerts (${alerts})`}
             </button>
           ))}
         </div>
-        <input
-          type="search"
-          placeholder="Search farms…"
-          value={search}
+        <input type="search" placeholder="Search farms…" value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-bfe-purple"
-        />
-        <button
-          onClick={() => setShowAddFarm(true)}
+          className="flex-1 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-bfe-purple" />
+        <button onClick={() => setShowAddFarm(true)}
           className="shrink-0 bg-bfe-purple text-white rounded-xl px-4 py-2 text-sm font-semibold hover:opacity-90">
           + Add farm
         </button>
       </div>
 
-      {/* Farm list */}
       {loading ? (
         <div className="text-center py-16 text-gray-400">Loading farms…</div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-gray-400">No farms match your filter.</div>
       ) : (
-        <div className="space-y-3">
-          {filtered.map((farm) => (
-            <div key={farm.id} className="card flex items-center gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-sm">{farm.name}</span>
-                  <span className="text-xs text-gray-400">{farm.client_ref}</span>
-                  {farm.enterprise_types.map((e) => <EnterpriseTag key={e} type={e} />)}
-                  {farm.alert_count > 0 && (
-                    <span className="text-xs font-bold text-bfe-red bg-bfe-red-light px-2 py-0.5 rounded-full">
-                      {farm.alert_count} alert{farm.alert_count > 1 ? "s" : ""}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-3 mt-1">
-                  <div className="flex-1 max-w-[160px]">
+        <>
+          {/* ── Mobile cards (hidden on md+) ── */}
+          <div className="space-y-3 md:hidden">
+            {filtered.map((farm) => (
+              <div key={farm.id} className="card flex items-center gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-sm">{farm.name}</span>
+                    <span className="text-xs text-gray-400">{farm.client_ref}</span>
+                    {farm.enterprise_types.map((e) => <EnterpriseTag key={e} type={e} />)}
+                  </div>
+                  <div className="mt-2 max-w-[200px]">
                     <CompletionBar pct={farm.completion_pct} />
                   </div>
-                  <span className="text-xs text-gray-500">{farm.completion_pct}% this year</span>
+                  {farm.last_response && (
+                    <div className="text-xs text-gray-400 mt-1">
+                      Last: {new Date(farm.last_response).toLocaleDateString("en-GB")}
+                    </div>
+                  )}
                 </div>
-                {farm.last_response && (
-                  <div className="text-xs text-gray-400 mt-0.5">
-                    Last response: {new Date(farm.last_response).toLocaleDateString("en-GB")}
-                  </div>
-                )}
+                <div className="flex flex-col gap-1.5 shrink-0">
+                  <button onClick={() => setDemoFarm(farm)}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700">Demo</button>
+                  <DispatchButton farm={farm} />
+                  <Link href={`/admin/farms/${farm.id}/report`}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-bfe-purple text-white text-center">Report</Link>
+                </div>
               </div>
-              <div className="flex gap-2 shrink-0 items-center">
-                <button
-                  onClick={() => setDemoFarm(farm)}
-                  className="text-xs font-semibold px-3 py-2 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">
-                  Demo
-                </button>
-                <DispatchButton farm={farm} />
-                <Link
-                  href={`/admin/farms/${farm.id}/report`}
-                  className="text-xs font-semibold px-3 py-2 rounded-lg bg-bfe-purple text-white hover:bg-bfe-purple-dark transition-colors">
-                  Report
-                </Link>
-              </div>
+            ))}
+          </div>
+
+          {/* ── Desktop table (hidden below md) ── */}
+          <div className="hidden md:block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <th className="text-left px-5 py-3">Farm</th>
+                  <th className="text-left px-4 py-3">Enterprises</th>
+                  <th className="text-left px-4 py-3 w-44">Completion</th>
+                  <th className="text-left px-4 py-3 w-28">Last check-in</th>
+                  <th className="text-right px-5 py-3 w-44">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filtered.map((farm) => (
+                  <tr key={farm.id} className="hover:bg-gray-50/70 transition-colors group">
+                    <td className="px-5 py-3.5">
+                      <div className="font-semibold text-gray-800 leading-tight">{farm.name}</div>
+                      <div className="text-xs text-gray-400 mt-0.5">{farm.client_ref}</div>
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <div className="flex gap-1 flex-wrap">
+                        {farm.enterprise_types.map((e) => <EnterpriseTag key={e} type={e} />)}
+                        {farm.alert_count > 0 && (
+                          <span className="text-xs font-bold text-bfe-red bg-bfe-red-light px-2 py-0.5 rounded-full">
+                            {farm.alert_count} alert{farm.alert_count > 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <CompletionBar pct={farm.completion_pct} />
+                    </td>
+                    <td className="px-4 py-3.5 text-xs text-gray-500">
+                      {farm.last_response
+                        ? new Date(farm.last_response).toLocaleDateString("en-GB")
+                        : <span className="text-gray-300">—</span>}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center justify-end gap-2">
+                        <button onClick={() => setDemoFarm(farm)}
+                          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">
+                          Demo
+                        </button>
+                        <DispatchButton farm={farm} />
+                        <Link href={`/admin/farms/${farm.id}/report`}
+                          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-bfe-purple text-white hover:opacity-90 transition-opacity">
+                          Report
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="px-5 py-2.5 border-t border-gray-100 bg-gray-50 text-xs text-gray-400">
+              {filtered.length} farm{filtered.length !== 1 ? "s" : ""}
+              {filtered.length !== farms.length ? ` (filtered from ${farms.length})` : ""}
             </div>
-          ))}
-        </div>
+          </div>
+        </>
       )}
     </div>
   );

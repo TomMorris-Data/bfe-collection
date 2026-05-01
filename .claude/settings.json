@@ -3,7 +3,8 @@
     "allow": [
       "Bash(git commit -m ' *)",
       "Bash(curl.exe -s -w \"\\\\nSTATUS:%{http_code}\" \"https://bfe-health-api.tmorris.workers.dev/api/antibiotics/categories\")",
-      "Bash(curl.exe -s -w \"\\\\nSTATUS:%{http_code}\" \"https://bfe-health-api.tmorris.workers.dev/health\")"
+      "Bash(curl.exe -s -w \"\\\\nSTATUS:%{http_code}\" \"https://bfe-health-api.tmorris.workers.dev/health\")",
+      "Bash(git commit *)"
     ]
   }
 }
